@@ -5,7 +5,8 @@ import {
     getProducts,
     getProductById,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    updateInventory
 } from '../controllers/productController';
 import authMiddleware from '../middlewares/authMiddleware';
 import adminMiddleware from '../middlewares/adminMiddleware'; // Import admin middleware
@@ -22,5 +23,5 @@ router.use(authMiddleware);           // Only authenticated users can access the
 router.post('/', adminMiddleware, createProduct); // Only admin can create product
 router.put('/:id', adminMiddleware, updateProduct); // Only admin can update product
 router.delete('/:id', adminMiddleware, deleteProduct); // Only admin can delete product
-
+router.put('/inventory/:id', adminMiddleware, updateInventory);
 export default router;
