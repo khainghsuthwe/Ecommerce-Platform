@@ -112,3 +112,29 @@ export const deleteProduct = async (req: Request, res: Response): Promise<Respon
         return res.status(500).json({ message: errorMessage });
     }
 };
+
+export const updateInventory = async (req: Request, res: Response) => {
+    const { id } = req.params; // Product ID from the request parameters
+    const { inventory } = req.body; // New inventory count from the request body
+
+    if (typeof inventory !== 'number' || inventory < 0) {
+        return res.status(400).json({ message: 'Invalid inventory value' });
+    }
+
+    try {
+        const updatedProduct = await Product.findByIdAndUpdate(
+            id,
+            { inventory },
+            { new: true } // Return the updated document
+        );
+
+        if (!updatedProduct) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        res.status(200).json(updatedProduct);
+    } catch (err: unknown) {
+        const errorMessage = (err instanceof Error) ? err.message : 'Server error';
+        res.status(500).json({ message: errorMessage });
+    }
+};
