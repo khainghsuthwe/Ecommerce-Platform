@@ -74,6 +74,27 @@ export const getProducts = async (req: Request, res: Response): Promise<Response
     }
 };
 
+export const getProductsByCategory = async (req: Request, res: Response): Promise<Response> => {
+    const { category } = req.query;
+
+    try {
+        if (!category) {
+            return res.status(400).json({ message: 'Category is required' });
+        }
+
+        const products = await Product.find({ category });
+        
+        if (products.length === 0) {
+            return res.status(404).json({ message: 'No products found in this category' });
+        }
+
+        return res.json(products);
+    } catch (err: unknown) {
+        const errorMessage = (err instanceof Error) ? err.message : 'Error fetching products';
+        return res.status(500).json({ message: errorMessage });
+    }
+};
+
 export const getProductById = async (req: Request, res: Response): Promise<Response> => {
     try {
         const product = await Product.findById(req.params.id).populate('category');
