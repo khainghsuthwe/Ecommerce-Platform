@@ -6,7 +6,8 @@ import {
     getProductById,
     updateProduct,
     deleteProduct,
-    updateInventory
+    updateInventory,
+    getProductsByCategory
 } from '../controllers/productController';
 import authMiddleware from '../middlewares/authMiddleware';
 import adminMiddleware from '../middlewares/adminMiddleware'; // Import admin middleware
@@ -16,7 +17,7 @@ const router = Router();
 // Routes that anyone can access
 router.get('/', getProducts);        // Get all products (no login required)
 router.get('/:id', getProductById);  // Get a single product by ID (no login required)
-
+router.get('/products/category', getProductsByCategory);
 // Protect the following routes with authentication and admin checks
 router.use(authMiddleware);           // Only authenticated users can access these routes
 
