@@ -5,6 +5,7 @@ import userRoutes from './routes/userRoutes';
 import productRoutes from './routes/productRoutes';
 import cartRoutes from './routes/cartRoutes';
 import categoryRoutes from './routes/categoryRoutes'
+import paymentRoutes from './routes/paymentRoutes'
 import  authMiddleware  from './middlewares/authMiddleware';
 
 dotenv.config();
@@ -28,6 +29,6 @@ app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart',  cartRoutes);
 app.use('/api/categories', categoryRoutes);
-
+app.use('/api/payment',paymentRoutes)
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
