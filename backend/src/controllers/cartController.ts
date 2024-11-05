@@ -1,29 +1,85 @@
 import mongoose from 'mongoose'; // Import mongoose for ObjectId
 import { Request, Response } from 'express';
 import Cart from '../models/Cart';
+import Product from '../models/Product';
+
+// export const addToCart = async (req: Request, res: Response) => {
+//     const { usr, productId, quantity } = req.body;
+
+//     try {
+//         const cart = await Cart.findOne({ usr }) || new Cart({ usr, products: [] });
+//         const existingProductIndex = cart.products.findIndex(p => p.productId.toString() === productId);
+
+//         if (existingProductIndex > -1) {
+//             cart.products[existingProductIndex].quantity += quantity;
+//         } else {
+//             cart.products.push({ productId: new mongoose.Types.ObjectId(productId), quantity }); // Instantiate ObjectId
+//         }
+
+//         await cart.save();
+//         res.json({ message: 'Product added to cart successfully' });
+//     } catch (err: unknown) {
+//         const errorMessage = (err instanceof Error) ? `Error adding to cart: ${err.message}` : 'Error adding to cart';
+//         res.status(500).json({ message: errorMessage });
+//     }
+// };
 
 export const addToCart = async (req: Request, res: Response) => {
     const { usr, productId, quantity } = req.body;
 
+    // Validate incoming data
+    if (!usr || !productId || quantity <= 0) {
+        return res.status(400).json({ message: 'Invalid data. Please provide user ID, product ID, and quantity greater than 0.' });
+    }
+
     try {
+        // Find the product by ID and check stock
+        const product = await Product.findById(productId);
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        if (product.inventory < quantity) {
+            return res.status(400).json({ message: 'Not enough stock available' });
+        }
+
+        // Find the user's cart or create a new one if not exists
         const cart = await Cart.findOne({ usr }) || new Cart({ usr, products: [] });
+
+        // Check if the product already exists in the cart
         const existingProductIndex = cart.products.findIndex(p => p.productId.toString() === productId);
 
         if (existingProductIndex > -1) {
-            cart.products[existingProductIndex].quantity += quantity;
+            // If the product is already in the cart, increase the quantity
+            const currentProduct = cart.products[existingProductIndex];
+            const newQuantity = currentProduct.quantity + quantity;
+
+            // Ensure that the total quantity does not exceed available inventory
+            if (newQuantity > product.inventory) {
+                return res.status(400).json({ message: 'Not enough stock available for the updated quantity' });
+            }
+
+            cart.products[existingProductIndex].quantity = newQuantity;
         } else {
-            cart.products.push({ productId: new mongoose.Types.ObjectId(productId), quantity }); // Instantiate ObjectId
+            // Add the product to the cart with the specified quantity
+            cart.products.push({ productId: new mongoose.Types.ObjectId(productId), quantity });
         }
 
+        // Save the updated cart
         await cart.save();
-        res.json({ message: 'Product added to cart successfully' });
+
+        // Update product inventory
+        product.inventory -= quantity;
+        await product.save();
+
+        // Respond to the client
+        res.json({ message: 'Product added to cart successfully', cart });
+
     } catch (err: unknown) {
         const errorMessage = (err instanceof Error) ? `Error adding to cart: ${err.message}` : 'Error adding to cart';
         res.status(500).json({ message: errorMessage });
     }
 };
-
-
 
 export const removeFromCart = async (req: Request, res: Response) => {
     const { usr } = req.body;
