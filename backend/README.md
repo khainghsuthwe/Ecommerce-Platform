@@ -1,6 +1,5 @@
 # E-commerce API 
-This is the API for an e-commerce application built with Node.js and Express.js. 
-
+This is the API for an e-commerce application built with Node.js and Express.js. The project specifications can be found on [roadmap.sh](https://roadmap.sh/projects/ecommerce-api)
 ## Table of Contents
 
 1. [TechStack](#techstack)
@@ -45,6 +44,7 @@ This is the API for an e-commerce application built with Node.js and Express.js.
 
 ```
 MONGODB_URI = <your mongodb uri>
+JWT_SECRET= <your_jwt_secret>
 STRIPE_SECRET_KEY = <your stripe api key>
 ```
 
