@@ -7,10 +7,16 @@ import cartRoutes from './routes/cartRoutes';
 import categoryRoutes from './routes/categoryRoutes'
 import paymentRoutes from './routes/paymentRoutes'
 import  authMiddleware  from './middlewares/authMiddleware';
+import cors from 'cors';
 
 dotenv.config();
 
 const app = express();
+app.use(cors({
+    origin: 'http://localhost:5173',  // Allow requests from your frontend
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed methods
+    credentials: true,  // Allow cookies, etc.
+  }));
 app.use(express.json());
 const PORT = process.env.PORT || 5000;
 
