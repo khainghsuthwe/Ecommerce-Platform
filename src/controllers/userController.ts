@@ -35,7 +35,7 @@ export const signup = async (req: Request, res: Response) => {
 };
 
 export const login = async (req: Request, res: Response) => {
-    const { email, password } = req.body;
+    const {username, email, password } = req.body;
 
     try {
         const user: IUser | null = await User.findOne({ email });
@@ -52,3 +52,40 @@ export const login = async (req: Request, res: Response) => {
         res.status(500).json({ message: errorMessage });
     }
 };
+
+
+export const updateProfile = async (req: Request, res: Response) => {
+    const userId = req.user?.id; // Access the user ID from the JWT payload
+    
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized: No user found' });
+    }
+  
+    const { username, password } = req.body;
+  
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+  
+      if (username) {
+        user.username = username;
+      }
+  
+      if (password) {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        user.password = hashedPassword;
+      }
+  
+      await user.save();
+  
+      res.json({
+        message: 'Profile updated successfully',
+        user: { id: user._id, username: user.username, email: user.email, role: user.role }
+      });
+    } catch (err) {
+      const errorMessage = (err instanceof Error) ? err.message : 'Error updating profile';
+      res.status(500).json({ message: errorMessage });
+    }
+  };
