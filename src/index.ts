@@ -7,7 +7,8 @@ import cartRoutes from './routes/cartRoutes';
 import categoryRoutes from './routes/categoryRoutes'
 import paymentRoutes from './routes/paymentRoutes'
 import  authMiddleware  from './middlewares/authMiddleware';
-import cors from 'cors';
+const cors = require('cors');  // For CommonJS
+
 
 dotenv.config();
 

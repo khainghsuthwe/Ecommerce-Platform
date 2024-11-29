@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import User, { IUser } from '../models/User'; // Import the User model
+import User, { IUser } from '../models/User'; 
+import Product from '../models/Product'; 
 
 export const signup = async (req: Request, res: Response) => {
     const { username, email, password, role } = req.body;
@@ -89,3 +90,90 @@ export const updateProfile = async (req: Request, res: Response) => {
       res.status(500).json({ message: errorMessage });
     }
   };
+
+
+// Add a product to the user's favourites
+export const addToFavourites = async (req: Request, res: Response) => {
+  const userId = req.user?.id;
+  const { productId } = req.body;
+
+  if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized: No user found' });
+  }
+
+  try {
+      const user = await User.findById(userId);
+      if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Check if the product exists
+      const product = await Product.findById(productId);
+      if (!product) {
+          return res.status(404).json({ message: 'Product not found' });
+      }
+
+      // Add the product to the user's favourites if not already added
+      if (!user.favourites.includes(productId)) {
+          user.favourites.push(productId);
+          await user.save();
+          return res.status(200).json({ message: 'Product added to favourites' });
+      }
+
+      res.status(400).json({ message: 'Product already in favourites' });
+  } catch (err) {
+      const errorMessage = (err instanceof Error) ? err.message : 'Error adding product to favourites';
+      res.status(500).json({ message: errorMessage });
+  }
+};
+
+// Remove a product from the user's favourites
+export const removeFromFavourites = async (req: Request, res: Response) => {
+  const userId = req.user?.id;
+  const { productId } = req.body;
+
+  if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized: No user found' });
+  }
+
+  try {
+      const user = await User.findById(userId);
+      if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Check if the product is in the user's favourites
+      if (!user.favourites.includes(productId)) {
+          return res.status(400).json({ message: 'Product not in favourites' });
+      }
+
+      // Remove the product from the favourites
+      user.favourites = user.favourites.filter(id => !id.equals(productId));
+      await user.save();
+      res.status(200).json({ message: 'Product removed from favourites' });
+  } catch (err) {
+      const errorMessage = (err instanceof Error) ? err.message : 'Error removing product from favourites';
+      res.status(500).json({ message: errorMessage });
+  }
+};
+
+// Get the user's favourite products
+export const getFavouriteProducts = async (req: Request, res: Response) => {
+  const userId = req.user?.id;
+
+  if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized: No user found' });
+  }
+
+  try {
+      const user = await User.findById(userId).populate('favourites');
+      if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+      }
+
+      res.status(200).json({ favourites: user.favourites });
+  } catch (err) {
+      const errorMessage = (err instanceof Error) ? err.message : 'Error fetching favourite products';
+      res.status(500).json({ message: errorMessage });
+  }
+};
