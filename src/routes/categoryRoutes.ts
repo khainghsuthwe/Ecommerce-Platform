@@ -27,6 +27,9 @@ import adminMiddleware from '../middlewares/adminMiddleware'; // Import admin mi
 
 const router = Router();
 
+// Anyone can view categories
+router.get('/', getCategories); // Get all categories
+router.get('/:id', getCategoryById); // Get a single category by ID
 // Protect these routes with authentication middleware
 router.use(authMiddleware); 
 
@@ -35,8 +38,6 @@ router.post('/', adminMiddleware, createCategory); // Only admin can create a ca
 router.put('/:id', adminMiddleware, updateCategory); // Only admin can update a category
 router.delete('/:id', adminMiddleware, deleteCategory); // Only admin can delete a category
 
-// Anyone can view categories
-router.get('/', getCategories); // Get all categories
-router.get('/:id', getCategoryById); // Get a single category by ID
+
 
 export default router;
