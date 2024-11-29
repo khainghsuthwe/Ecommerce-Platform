@@ -30,10 +30,10 @@ import { Request, Response } from 'express';
 import Product from '../models/Product';
 
 export const createProduct = async (req: Request, res: Response): Promise<Response> => {
-    const { name, description, price, inventory, category } = req.body;
+    const { name, description, price, inventory, category, image, tags } = req.body;
 
     try {
-        const newProduct = new Product({ name, description, price, inventory, category });
+        const newProduct = new Product({ name, description, price, inventory, category, image, tags});
         await newProduct.save();
         return res.status(201).json(newProduct);
     } catch (err: unknown) {
