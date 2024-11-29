@@ -6,11 +6,10 @@ const router = Router();
 
 router.post('/signup', signup);
 router.post('/login',login);
-router.put('/api/user/profile', authMiddleware, updateProfile);
-router.post('/api/user/favourites', authMiddleware, addToFavourites);
+router.put('/api/user/updateprofile', authMiddleware, updateProfile);
+router.post('/api/user/addFavourite', authMiddleware, addToFavourites);
 
-router.post('/api/user/favourites', authMiddleware, addToFavourites);
-router.delete('/api/user/favourites', authMiddleware, removeFromFavourites);
+router.delete('/api/user/removeFavourite', authMiddleware, removeFromFavourites);
 router.get('/api/user/favourites', authMiddleware, getFavouriteProducts);
 
 
