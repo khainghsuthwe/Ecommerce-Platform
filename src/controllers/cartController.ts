@@ -28,7 +28,7 @@ export const addToCart = async (req: Request, res: Response) => {
     const { usr, productId, quantity } = req.body;
 
     // Validate incoming data
-    if (!usr || !productId || quantity <= 0) {
+    if (!usr || !productId || !quantity || quantity <= 0) {
         return res.status(400).json({ message: 'Invalid data. Please provide user ID, product ID, and quantity greater than 0.' });
     }
 
@@ -59,6 +59,7 @@ export const addToCart = async (req: Request, res: Response) => {
                 return res.status(400).json({ message: 'Not enough stock available for the updated quantity' });
             }
 
+            // Update the quantity of the existing product
             cart.products[existingProductIndex].quantity = newQuantity;
         } else {
             // Add the product to the cart with the specified quantity
@@ -72,14 +73,14 @@ export const addToCart = async (req: Request, res: Response) => {
         product.inventory -= quantity;
         await product.save();
 
-        // Respond to the client
+        // Respond to the client with the updated cart
         res.json({ message: 'Product added to cart successfully', cart });
-
     } catch (err: unknown) {
         const errorMessage = (err instanceof Error) ? `Error adding to cart: ${err.message}` : 'Error adding to cart';
         res.status(500).json({ message: errorMessage });
     }
 };
+
 
 export const removeFromCart = async (req: Request, res: Response) => {
     const { usr } = req.body;
