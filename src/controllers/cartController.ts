@@ -119,36 +119,33 @@ export const viewCart = async (req: Request, res: Response) => {
     }
 };
 
+export const removeAllFromCart = async (req: Request, res: Response) => {
+    const { usr } = req.body;
 
-// export const checkout = async (req: Request, res: Response) => {
-//     const { userId } = req.body;
+    if (!usr) {
+        return res.status(400).json({ message: 'Please provide user ID' });
+    }
 
-//     try {
-//         const cart = await Cart.findOne({ userId }).populate('products.productId');
-//         if (!cart) return res.status(404).json({ message: 'Cart not found' });
+    try {
+        // Find the user's cart
+        const cart = await Cart.findOne({ usr });
+        if (!cart) {
+            return res.status(404).json({ message: 'Cart not found' });
+        }
 
-//         const line_items = cart.products.map(item => ({
-//             price_data: {
-//                 currency: 'usd',
-//                 product_data: {
-//                     name: item.productId.name,
-//                 },
-//                 unit_amount: item.productId.price * 100,
-//             },
-//             quantity: item.quantity,
-//         }));
+        // Clear all products from the cart
+        cart.products = [];
 
-//         const session = await stripe.checkout.sessions.create({
-//             payment_method_types: ['card'],
-//             line_items,
-//             mode: 'payment',
-//             success_url: `${process.env.FRONTEND_URL}/success`,
-//             cancel_url: `${process.env.FRONTEND_URL}/cancel`,
-//         });
+        // Save the updated cart
+        await cart.save();
 
-//         res.json({ url: session.url });
-//     } catch (err: unknown) {
-//         const errorMessage = (err instanceof Error) ? err.message : 'Error during checkout';
-//         res.status(500).json({ message: errorMessage });
-//     }
-// };
+        // Respond to the client with the updated cart
+        res.json({ message: 'All products removed from cart successfully', cart });
+    } catch (err: unknown) {
+        const errorMessage = (err instanceof Error) ? `Error removing all from cart: ${err.message}` : 'Error removing all from cart';
+        res.status(500).json({ message: errorMessage });
+    }
+};
+
+
+
