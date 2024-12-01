@@ -7,155 +7,165 @@ import Payment from '../models/Payment'; // Import the Payment model
 
 // Function to handle checkout using Stripe Checkout sessions
 export const checkout = async (req: Request, res: Response) => {
-    const { userId, cartItems } = req.body;  // Expecting userId and cartItems from the frontend
-  
-    // Validate userId and cartItems
-    if (!userId || !cartItems || cartItems.length === 0) {
-      return res.status(400).json({ message: 'User ID and cart items are required' });
-    }
-  
-    try {
-      // Step 1: Check if the user already has a cart
-      let cart = await Cart.findOne({ userId: userId }).populate('products.productId').exec();
-  
-      // Step 2: If no cart exists, create a new one with the passed cartItems
-      if (!cart) {
-        cart = new Cart({
-          userId: userId,  // Ensure the key name matches your schema (you had userId but cart used usr)
-          products: cartItems.map((item: any) => ({
-            productId: item.id,  // Assuming you pass product ID
-            quantity: item.quantity,
-          })),
-        });
-        await cart.save();  // Save the new cart to the database
-      }
-  
-      // Step 3: Prepare line items for Stripe checkout from cartItems
-      const lineItems = cart.products.map((item: any) => {
-        
-        return {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: item.productId.name, // Assuming product has 'name'
-              description: item.productId.description || '', // Optional description
-            },
-            unit_amount: Math.round(item.productId.price *100), // Amount in cents
-          },
-          quantity: item.quantity,
-        };
-      });
+  const { userId, cartItems } = req.body;  // Expecting userId and cartItems from the frontend
 
-  
-      // Step 4: Create a Stripe Checkout session
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        line_items: lineItems,
-        mode: 'payment',
-        success_url: `${process.env.FRONTEND_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.FRONTEND_URL}/cancel`,
+  // Validate userId and cartItems
+  if (!userId || !cartItems || cartItems.length === 0) {
+    return res.status(400).json({ message: 'User ID and cart items are required' });
+  }
+
+  try {
+    // Step 1: Check if the user already has a cart
+    let cart = await Cart.findOne({ userId: userId }).populate('products.productId').exec();
+
+    // Step 2: If no cart exists, create a new one with the passed cartItems
+    if (!cart) {
+      cart = new Cart({
+        userId: userId,  // Ensure the key name matches your schema (you had userId but cart used usr)
+        products: cartItems.map((item: any) => ({
+          productId: item.id,  // Assuming you pass product ID
+          quantity: item.quantity,
+          price: item.price,
+          name: item.name
+        })),
       });
-  
-    //   const amount = cart.products.reduce((total: number, item: any) => {
-    //     const price = item.productId.price;
-    //     const quantity = item.quantity;
-      
-    //     // Validate price and quantity are numbers
-    //     if (isNaN(price) || isNaN(quantity)) {
-    //       console.warn('Invalid price or quantity:', item);
-    //       return total; // Skip this item
-    //     }
-      
-    //     return total + price * quantity;
-    //   }, 0);
-      
-    //   // Make sure amount is a valid number before saving it
-    //   if (isNaN(amount)) {
-    //     return res.status(400).json({ message: 'Invalid total amount' });
-    //   }
-      
-    //   const payment = new Payment({
-    //     userId,
-    //     amount,
-    //     currency: 'usd',
-    //     status: 'pending',
-    //     transactionId: session.id,
-    //   });
-      
-    //   await payment.save();
-      
-  
-      // Step 6: Clear the cart after successful payment
-      await Cart.updateOne({ userId: userId }, { $set: { products: [] } });
-  
-      // Step 7: Return the Stripe checkout session URL
-      res.json({ url: session.url });
-    } catch (err: unknown) {
-      const errorMessage = (err instanceof Error) ? err.message : 'Error during checkout';
-      console.error(err);
-      res.status(500).json({ message: errorMessage });
+      await cart.save();
+    } else {
+      cart.products = cartItems.map((item: any) => ({
+        productId: item.id,
+        price: item.price,
+        name: item.name,
+        quantity: item.quantity,
+      }));
+      await cart.save();
     }
-  }; 
+
+    console.log(cartItems)
+
+
+    const lineItems = cart.products.map((item: any) => {
+
+      return {
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: item.productId.name,
+            description: item.productId.description || '',
+          },
+          unit_amount: item.productId.price, // Amount in cents
+        },
+        quantity: item.quantity,
+      };
+    });
+
+    console.log(lineItems)
+    // Step 4: Create a Stripe Checkout session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: lineItems,
+      mode: 'payment',
+      success_url: `${process.env.FRONTEND_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.FRONTEND_URL}/cancel`,
+    });
+
+    const amount = cart.products.reduce((total: number, item: any) => {
+      const price = item.productId.price;
+      const quantity = item.quantity;
+
+      // Validate price and quantity are numbers
+      if (isNaN(price) || isNaN(quantity)) {
+        console.warn('Invalid price or quantity:', item);
+        return total; // Skip this item
+      }
+
+      return total + price * quantity;
+    }, 0);
+
+    // Make sure amount is a valid number before saving it
+    if (isNaN(amount)) {
+      return res.status(400).json({ message: 'Invalid total amount' });
+    }
+
+    const payment = new Payment({
+      userId,
+      amount,
+      currency: 'usd',
+      status: 'pending',
+      transactionId: session.id,
+    });
+
+    await payment.save();
+
+
+    await Cart.updateOne({ userId: userId }, { $set: { products: [] } });
+
+    res.json({ url: session.url });
+  } catch (err: unknown) {
+    const errorMessage = (err instanceof Error) ? err.message : 'Error during checkout';
+    console.error(err);
+    res.status(500).json({ message: errorMessage });
+  }
+};
 
 // Function to create a direct payment intent with Stripe
 export const createPayment = async (req: Request, res: Response) => {
-    const { userId, cartItems } = req.body;
+  const { userId, cartItems } = req.body;
 
-    // Validate input
-    if (!userId || !cartItems) {
-        return res.status(400).json({ message: 'User ID and cart items are required' });
-    }
+  // Validate input
+  if (!userId || !cartItems) {
+    return res.status(400).json({ message: 'User ID and cart items are required' });
+  }
 
-    try {
-        // Calculate total amount from cart items
-        const totalAmount = cartItems.reduce((total: number, item: { price: number; quantity: number }) => {
-            return total + item.price * item.quantity;
-        }, 0);
+  try {
+    // Calculate total amount from cart items
+    const totalAmount = cartItems.reduce((total: number, item: { price: number; quantity: number }) => {
+      return total + item.price * item.quantity;
+    }, 0);
 
-        // Create a Stripe Payment Intent
-        const paymentIntent = await stripe.paymentIntents.create({
-            amount: totalAmount, // amount in cents
-            currency: 'usd',
-            metadata: { userId: userId.toString() },
-        });
+    // Create a Stripe Payment Intent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: totalAmount, // amount in cents
+      currency: 'usd',
+      metadata: { userId: userId.toString() },
+    });
 
-        // Save payment details in the database
-        const payment = new Payment({
-            userId,
-            amount: totalAmount,
-            currency: 'usd',
-            status: 'pending', // Set initial status
-            transactionId: paymentIntent.id, // Store Stripe Payment Intent ID
-        });
+    // Save payment details in the database
+    const payment = new Payment({
+      userId,
+      amount: totalAmount,
+      currency: 'usd',
+      status: 'pending', // Set initial status
+      transactionId: paymentIntent.id, // Store Stripe Payment Intent ID
+    });
 
-        await payment.save();
+    await payment.save();
 
-        // Respond with the client secret to complete the payment on the client side
-        res.json({ clientSecret: paymentIntent.client_secret });
-    } catch (err: unknown) {
-        const errorMessage = (err instanceof Error) ? err.message : 'Error creating payment';
-        res.status(500).json({ message: errorMessage });
-    }
+    // Respond with the client secret to complete the payment on the client side
+    res.json({ clientSecret: paymentIntent.client_secret });
+  } catch (err: unknown) {
+    const errorMessage = (err instanceof Error) ? err.message : 'Error creating payment';
+    res.status(500).json({ message: errorMessage });
+  }
 };
 
 // Function to confirm payment status after returning from Stripe
 export const confirmPayment = async (req: Request, res: Response) => {
-    const { transactionId } = req.body; // Get transaction ID from request
+  const { transactionId } = req.body; // Get transaction ID from request
 
-    try {
-        const payment = await Payment.findOne({ transactionId });
-        if (!payment) {
-            return res.status(404).json({ message: 'Payment not found' });
-        }
-
-        // Update payment status based on your verification logic
-        // For simplicity, assume the payment was successful
-        payment.status = 'completed'; // Update the status appropriately
-        await payment.save();
-
-        return res.json(payment);
-    } catch (err: unknown) {
-        const errorMessage = (err instanceof Error) ? err.message : 'Error confirming payment';
-        res.status(500).json({ message: errorMessage });
+  try {
+    const payment = await Payment.findOne({ transactionId });
+    if (!payment) {
+      return res.status(404).json({ message: 'Payment not found' });
     }
+
+    // Update payment status based on your verification logic
+    // For simplicity, assume the payment was successful
+    payment.status = 'completed'; // Update the status appropriately
+    await payment.save();
+
+    return res.json(payment);
+  } catch (err: unknown) {
+    const errorMessage = (err instanceof Error) ? err.message : 'Error confirming payment';
+    res.status(500).json({ message: errorMessage });
+  }
 };
