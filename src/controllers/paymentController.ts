@@ -4,55 +4,55 @@ import stripe from '../config/stripe';
 import { IProduct } from '../models/Product';
 import Cart from '../models/Cart';
 import Payment from '../models/Payment'; // Import the Payment model
+import Product from '../models/Product';
 
 // Function to handle checkout using Stripe Checkout sessions
 export const checkout = async (req: Request, res: Response) => {
   const { userId, cartItems } = req.body;  // Expecting userId and cartItems from the frontend
 
-  // Validate userId and cartItems
   if (!userId || !cartItems || cartItems.length === 0) {
     return res.status(400).json({ message: 'User ID and cart items are required' });
   }
 
   try {
-    // Step 1: Check if the user already has a cart
-    let cart = await Cart.findOne({ userId: userId }).populate('products.productId').exec();
 
-    // Step 2: If no cart exists, create a new one with the passed cartItems
+    let cart = await Cart.findOne({ userId: userId })
+    .populate('products.productId', 'name price description')  // Populate the name, price, description fields
+    .exec();
+
     if (!cart) {
       cart = new Cart({
-        userId: userId,  // Ensure the key name matches your schema (you had userId but cart used usr)
+        userId: userId,  
         products: cartItems.map((item: any) => ({
-          productId: item.id,  // Assuming you pass product ID
+          productId: item.id,  
           quantity: item.quantity,
-          price: item.price,
-          name: item.name
         })),
       });
       await cart.save();
-    } else {
-      cart.products = cartItems.map((item: any) => ({
-        productId: item.id,
-        price: item.price,
-        name: item.name,
-        quantity: item.quantity,
-      }));
-      await cart.save();
+      cart = await Cart.findOne({ userId: userId })
+        .populate('products.productId', 'name price description')
+        .exec();
+    } 
+   
+
+    console.log(cart)
+    if (!cart || !cart.products) {
+      return res.status(400).json({ message: 'Cart not found or cart is empty' });
     }
-
-    console.log(cartItems)
-
-
     const lineItems = cart.products.map((item: any) => {
+      const product = item.productId; 
+      if (!product) {
+        throw new Error('Product details are missing or invalid.');
+      }
 
       return {
         price_data: {
           currency: 'usd',
           product_data: {
-            name: item.productId.name,
-            description: item.productId.description || '',
+            name: product.name,
+            description: product.description || 'No description available',
           },
-          unit_amount: item.productId.price, // Amount in cents
+          unit_amount: Math.round(product.price * 100) , // Stripe requires amount in cents
         },
         quantity: item.quantity,
       };
@@ -72,10 +72,9 @@ export const checkout = async (req: Request, res: Response) => {
       const price = item.productId.price;
       const quantity = item.quantity;
 
-      // Validate price and quantity are numbers
       if (isNaN(price) || isNaN(quantity)) {
         console.warn('Invalid price or quantity:', item);
-        return total; // Skip this item
+        return total;
       }
 
       return total + price * quantity;
@@ -97,7 +96,7 @@ export const checkout = async (req: Request, res: Response) => {
     await payment.save();
 
 
-    await Cart.updateOne({ userId: userId }, { $set: { products: [] } });
+    //await Cart.updateOne({ userId: userId }, { $set: { products: [] } });
 
     res.json({ url: session.url });
   } catch (err: unknown) {
