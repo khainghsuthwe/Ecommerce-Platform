@@ -3,12 +3,12 @@ import { Request, Response } from 'express';
 import stripe from '../config/stripe';
 import { IProduct } from '../models/Product';
 import Cart from '../models/Cart';
-import Payment from '../models/Payment'; // Import the Payment model
+import Payment from '../models/Payment'; 
 import Product from '../models/Product';
 
-// Function to handle checkout using Stripe Checkout sessions
+
 export const checkout = async (req: Request, res: Response) => {
-  const { userId, cartItems } = req.body;  // Expecting userId and cartItems from the frontend
+  const { userId, cartItems } = req.body;  
 
   if (!userId || !cartItems || cartItems.length === 0) {
     return res.status(400).json({ message: 'User ID and cart items are required' });
@@ -17,7 +17,7 @@ export const checkout = async (req: Request, res: Response) => {
   try {
 
     let cart = await Cart.findOne({ userId: userId })
-    .populate('products.productId', 'name price description')  // Populate the name, price, description fields
+    .populate('products.productId', 'name price description')  
     .exec();
 
     if (!cart) {
@@ -35,7 +35,6 @@ export const checkout = async (req: Request, res: Response) => {
     } 
    
 
-    console.log(cart)
     if (!cart || !cart.products) {
       return res.status(400).json({ message: 'Cart not found or cart is empty' });
     }
@@ -52,14 +51,12 @@ export const checkout = async (req: Request, res: Response) => {
             name: product.name,
             description: product.description || 'No description available',
           },
-          unit_amount: Math.round(product.price * 100) , // Stripe requires amount in cents
+          unit_amount: Math.round(product.price * 100) , 
         },
         quantity: item.quantity,
       };
     });
 
-    console.log(lineItems)
-    // Step 4: Create a Stripe Checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: lineItems,
