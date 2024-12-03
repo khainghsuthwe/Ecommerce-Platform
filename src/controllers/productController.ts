@@ -1,28 +1,3 @@
-// import { Request, Response } from 'express';
-// import Product from '../models/Product';
-
-// export const createProduct = async (req: Request, res: Response) => {
-//     const { name, price, inventory } = req.body;
-
-//     try {
-//         const newProduct = new Product({ name, price, inventory });
-//         await newProduct.save();
-//         res.status(201).json({ message: 'Product created successfully' });
-//     } catch (err: unknown) {
-//         const errorMessage = (err instanceof Error) ? err.message : 'Error creating product';
-//         res.status(400).json({ message: errorMessage });
-//     }
-// };
-
-// export const getProducts = async (req: Request, res: Response) => {
-//     try {
-//         const products = await Product.find();
-//         res.json(products);
-//     } catch (err: unknown) {
-//         const errorMessage = (err instanceof Error) ? err.message : 'Server error';
-//         res.status(500).json({ message: errorMessage });
-//     }
-// };
 
 
 // src/controllers/productController.ts
@@ -42,9 +17,50 @@ export const createProduct = async (req: Request, res: Response): Promise<Respon
     }
 };
 
+// export const getProducts = async (req: Request, res: Response): Promise<Response> => {
+//     try {
+//         const { search, category, minPrice, maxPrice } = req.query;
+
+//         // Build query object
+//         const query: any = {};
+
+//         // Add search functionality
+//         if (search) {
+//             query.name = { $regex: search, $options: 'i' }; // Case-insensitive search
+//         }
+
+//         // Filter by category if provided
+//         if (category) {
+//             query.category = category;
+//         }
+
+//         // Filter by price range if provided
+//         if (minPrice || maxPrice) {
+//             query.price = {};
+//             if (minPrice) query.price.$gte = Number(minPrice);
+//             if (maxPrice) query.price.$lte = Number(maxPrice);
+//         }
+
+//         const products = await Product.find(query).populate('category'); // Populate category details
+//         return res.json(products);
+//     } catch (err: unknown) {
+//         const errorMessage = (err instanceof Error) ? err.message : 'Error fetching products';
+//         return res.status(500).json({ message: errorMessage });
+//     }
+// };
+
 export const getProducts = async (req: Request, res: Response): Promise<Response> => {
     try {
-        const { search, category, minPrice, maxPrice } = req.query;
+        const { search, category, minPrice, maxPrice, page = 1, limit = 10 } = req.query;
+
+        // Convert page and limit to numbers
+        const pageNumber = Number(page);
+        const limitNumber = Number(limit);
+
+        // Ensure valid page and limit
+        if (pageNumber < 1 || limitNumber < 1) {
+            return res.status(400).json({ message: 'Invalid pagination parameters' });
+        }
 
         // Build query object
         const query: any = {};
@@ -66,13 +82,30 @@ export const getProducts = async (req: Request, res: Response): Promise<Response
             if (maxPrice) query.price.$lte = Number(maxPrice);
         }
 
-        const products = await Product.find(query).populate('category'); // Populate category details
-        return res.json(products);
+        // Get the total count of products that match the query (for pagination)
+        const totalProducts = await Product.countDocuments(query);
+
+        // Calculate total pages
+        const totalPages = Math.ceil(totalProducts / limitNumber);
+
+        // Get products for the current page, with limit and skip (offset)
+        const products = await Product.find(query)
+            .skip((pageNumber - 1) * limitNumber)  // Skip the products based on the current page
+            .limit(limitNumber)                    // Limit the number of products returned
+            .populate('category');                 // Populate category details
+
+        return res.json({
+            products,
+            totalPages,   // Total pages for pagination
+            currentPage: pageNumber,  // Current page number
+            totalProducts, // Total number of products matching the query
+        });
     } catch (err: unknown) {
         const errorMessage = (err instanceof Error) ? err.message : 'Error fetching products';
         return res.status(500).json({ message: errorMessage });
     }
 };
+
 
 export const getProductsByCategory = async (req: Request, res: Response): Promise<Response> => {
     const { category } = req.query;
