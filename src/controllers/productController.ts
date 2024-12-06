@@ -2,7 +2,7 @@
 
 // src/controllers/productController.ts
 import { Request, Response } from 'express';
-import Product from '../models/Product';
+import Product,{ ProductTags } from '../models/Product';
 
 export const createProduct = async (req: Request, res: Response): Promise<Response> => {
     const { name, description, price, inventory, category, image, tags } = req.body;
@@ -145,7 +145,7 @@ export const getProductById = async (req: Request, res: Response): Promise<Respo
 export const getFeaturedProducts = async (req: Request, res: Response): Promise<Response> => {
     try {
         // Query products that have the "featured" tag
-        const featuredProducts = await Product.find({ tags: 'featured' })
+        const featuredProducts = await Product.find({ tags: ProductTags.FEATURED })
             .populate('category');  // Optionally populate category if needed
 
         if (featuredProducts.length === 0) {
@@ -162,7 +162,7 @@ export const getFeaturedProducts = async (req: Request, res: Response): Promise<
 export const getPopularProducts = async (req: Request, res: Response): Promise<Response> => {
     try {
         // Query products that have the "featured" tag
-        const featuredProducts = await Product.find({ tags: 'popular' })
+        const featuredProducts = await Product.find({ tags: ProductTags.POPULAR })
             .populate('category');  // Optionally populate category if needed
 
         if (featuredProducts.length === 0) {
