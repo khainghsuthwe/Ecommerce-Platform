@@ -14,8 +14,7 @@ dotenv.config();
 
 const app = express();
 app.use(cors({
-    origin: ['http://localhost:5173',
-        'https://my-e-shop-frontend.onrender.com'],
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed methods
     credentials: true,  // Allow cookies, etc.
 }));
