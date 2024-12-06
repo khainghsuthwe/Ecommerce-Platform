@@ -19,9 +19,9 @@ const router = Router();
 // Routes that anyone can access
 router.get('/', getProducts);       
 router.get('/:id', getProductById); 
-router.get('/products/category', getProductsByCategory);
-router.get('/products/popular', getPopularProducts);
-router.get('/products/featured', getFeaturedProducts);
+router.get('/category', getProductsByCategory);
+router.get('/tags/popular', getPopularProducts);
+router.get('/tags/featured', getFeaturedProducts);
 // Protect the following routes with authentication and admin checks
 router.use(authMiddleware);           // Only authenticated users can access these routes
 

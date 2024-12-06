@@ -144,9 +144,10 @@ export const getProductById = async (req: Request, res: Response): Promise<Respo
 
 export const getFeaturedProducts = async (req: Request, res: Response): Promise<Response> => {
     try {
+       
         // Query products that have the "featured" tag
-        const featuredProducts = await Product.find({ tags: ProductTags.FEATURED })
-            .populate('category');  // Optionally populate category if needed
+        const featuredProducts = await Product.find({ tags: ProductTags.FEATURED});
+        
 
         if (featuredProducts.length === 0) {
             return res.status(404).json({ message: 'No featured products found' });
@@ -162,16 +163,16 @@ export const getFeaturedProducts = async (req: Request, res: Response): Promise<
 export const getPopularProducts = async (req: Request, res: Response): Promise<Response> => {
     try {
         // Query products that have the "featured" tag
-        const featuredProducts = await Product.find({ tags: ProductTags.POPULAR })
-            .populate('category');  // Optionally populate category if needed
+        const popularProducts = await Product.find({ tags: ProductTags.POPULAR })
+           
 
-        if (featuredProducts.length === 0) {
-            return res.status(404).json({ message: 'No featured products found' });
+        if (popularProducts.length === 0) {
+            return res.status(404).json({ message: 'No popular products found' });
         }
 
-        return res.json(featuredProducts);
+        return res.json(popularProducts);
     } catch (err: unknown) {
-        const errorMessage = (err instanceof Error) ? err.message : 'Error fetching featured products';
+        const errorMessage = (err instanceof Error) ? err.message : 'Error fetching popular products';
         return res.status(500).json({ message: errorMessage });
     }
 };
